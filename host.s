@@ -4,21 +4,34 @@
 ;;; March 2020 ops
 ;;;
 
-C0_D0           := $9E
-C1_D0           := $9F
-PTR             := $AE
-DATA            := $B7
+.ifdef NO_ZERO_PAGE
+  end_address   := store+1
+.else
+  C0_D0         := $9E
+  C1_D0         := $9F
+  PTR           := $AE
+  DATA          := $93
+  end_address   := PTR
+  start_address := $029F
+.endif
 
         .include "hostdefs.inc"
         .include "shared.inc"
 
         .export gij_load
+        .export start_address
+        .export end_address
 
         .segment "GIJ_HOSTCODE"
 
 gij_load:
+.ifdef NO_ZERO_PAGE
+        stx     @n1+1           ; save filename 1st char
+        sty     @n2+1           ; save filename 2nd char
+.else
         stx     PTR             ; save filename 1st char
         sty     PTR+1           ; save filename 2nd char
+.endif
         lda     SERIAL_OUT
         and     #$FF - (CLOCK_OUT_BIT | DATA_OUT_BIT)
         sta     C0_D0
@@ -28,43 +41,75 @@ gij_load:
         sta     SERIAL_OUT      ; C0,D1
         jsr     wait_drive_ready
         jsr     send_byte       ; filename length (ignored by drive code)
+.ifdef NO_ZERO_PAGE
+@n1:    lda     #$00
+.else
         lda     PTR
+.endif
         jsr     send_byte       ; filename 1st char
+.ifdef NO_ZERO_PAGE
+@n2:    lda     #$00
+.else
         lda     PTR+1
+.endif
         jsr     send_byte       ; filename 2nd char
         jsr     wait_drive_ready
-        jsr     receive_byte
-        sta     PTR             ; start addr low
-        jsr     receive_byte
-        sta     PTR+1           ; start addr hi
-
+        jsr     receive_byte    ; start addr low
+        sta     start_address
+.ifdef NO_ZERO_PAGE
+        sta     store+1
+.else
+        sta     PTR
+.endif
+        jsr     receive_byte    ; start addr hi
+        sta     start_address+1
+.ifdef NO_ZERO_PAGE
+        sta     store+2
+.else
+        sta     PTR+1
+.endif
         ldy     #$00
-@loop:  jsr     receive_byte
+loop:   jsr     receive_byte
         cmp     #ESC_BYTE
-        bne     @store
+        bne     store
         jsr     receive_byte
         cmp     #ESC_BYTE
-        beq     @store
+        beq     store
         cmp     #DRIVE_OK
-        beq     @out_ok
+        beq     out_ok
         cmp     #DRIVE_ERROR
-        beq     @out_err
+        beq     out_err
         jsr     wait_drive_ready
-        jmp     @loop
-@store: sta     (PTR),y
+        jmp     loop
+.ifdef NO_ZERO_PAGE
+store:  sta    $0000,y
+.else
+store:  sta     (PTR),y
+.endif
         iny
-        bne     @loop
+        bne     loop
+.ifdef NO_ZERO_PAGE
+        inc     store+2
+.else
         inc     PTR+1
-        jmp     @loop
-@out_ok:
+.endif
+        bne     loop            ; Always branch (hopefully)
+out_ok:
         clc                     ; Update end addr
         tya
+.ifdef NO_ZERO_PAGE
+        adc     store+1
+        sta     store+1
+        bcc     :+
+        inc     store+2
+.else
         adc     PTR
         sta     PTR
         bcc     :+
         inc     PTR+1
+.endif
         clc
-@out_err:
+out_err:
 :       rts
 
 receive_byte:
@@ -127,3 +172,10 @@ wait_drive_ready:
 :       dex
         bne     :-
         rts
+
+.ifdef NO_ZERO_PAGE
+C0_D0:  .byte $00
+C1_D0:  .byte $00
+DATA:   .byte $00
+start_address: .word $0000
+.endif

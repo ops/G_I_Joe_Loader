@@ -13,6 +13,11 @@ AS := ca65
 
 target ?= vic20
 
+no_zero_page ?= 0
+ifeq ($(no_zero_page),1)
+  ASFLAGS += -DNO_ZERO_PAGE
+endif
+
 # Archiver flags and options.
 ARFLAGS = r
 
