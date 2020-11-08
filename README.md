@@ -8,7 +8,7 @@ same time.
 Now, after 35 years, I decided to find out how it was done.
 
 Here is the source code of the loader as a reusable library for
-[CC65](https://cc65.github.io/) compiler suite.
+[cc65](https://cc65.github.io/) compiler suite.
 The code running on the host machine has been rewritten but the code
 for disk drive is unmodified. This way the loader works on SD2IEC
 devices as well.
