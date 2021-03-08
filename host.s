@@ -58,20 +58,26 @@ gij_load:
         pla
         tax
         jsr     receive_byte    ; start addr low
+.ifdef RELOCATABLE_LOAD
         cpx     #$00
         beq     :+
         lda     $00,x
-:       sta     start_address
+:       ;
+.endif
+        sta     start_address
 .ifdef NO_ZERO_PAGE
         sta     store+1
 .else
         sta     PTR
 .endif
         jsr     receive_byte    ; start addr hi
+.ifdef RELOCATABLE_LOAD
         cpx     #$00
         beq     :+
         lda     $01,x
-:       sta     start_address+1
+:       ;
+.endif
+        sta     start_address+1
 .ifdef NO_ZERO_PAGE
         sta     store+2
 .else

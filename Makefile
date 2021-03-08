@@ -18,6 +18,11 @@ ifeq ($(no_zero_page),1)
   ASFLAGS += -DNO_ZERO_PAGE
 endif
 
+relocatable_load ?= 0
+ifeq ($(relocatable_load),1)
+  ASFLAGS += -DRELOCATABLE_LOAD
+endif
+
 # Archiver flags and options.
 ARFLAGS = r
 
