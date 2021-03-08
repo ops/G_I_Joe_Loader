@@ -25,6 +25,7 @@
         .segment "GIJ_HOSTCODE"
 
 gij_load:
+        pha
 .ifdef NO_ZERO_PAGE
         stx     @n1+1           ; save filename 1st char
         sty     @n2+1           ; save filename 2nd char
@@ -54,15 +55,23 @@ gij_load:
 .endif
         jsr     send_byte       ; filename 2nd char
         jsr     wait_drive_ready
+        pla
+        tax
         jsr     receive_byte    ; start addr low
-        sta     start_address
+        cpx     #$00
+        beq     :+
+        lda     $00,x
+:       sta     start_address
 .ifdef NO_ZERO_PAGE
         sta     store+1
 .else
         sta     PTR
 .endif
         jsr     receive_byte    ; start addr hi
-        sta     start_address+1
+        cpx     #$00
+        beq     :+
+        lda     $01,x
+:       sta     start_address+1
 .ifdef NO_ZERO_PAGE
         sta     store+2
 .else
@@ -113,10 +122,14 @@ out_err:
 :       rts
 
 receive_byte:
+        txa
+        pha
         jsr     receive_two_bits
         jsr     receive_two_bits
         jsr     receive_two_bits
         jsr     receive_two_bits
+        pla
+        tax
         lda     DATA
         rts
 

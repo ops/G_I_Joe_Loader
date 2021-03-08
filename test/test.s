@@ -72,6 +72,7 @@ Start:
         dey
         bne     :-
 
+        lda     #$00
         ldx     #FN_CH1
         ldy     #FN_CH2
 
